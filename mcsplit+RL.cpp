@@ -642,7 +642,7 @@ int main(int argc, char** argv) {
     }
 #endif
     //  auto start = std::chrono::steady_clock::now();
-    clock_t start=clock();
+//    clock_t start=clock();
     START = std::chrono::steady_clock::now();
     vector<int> g0_deg = calculate_degrees(g0);
     vector<int> g1_deg = calculate_degrees(g1);
