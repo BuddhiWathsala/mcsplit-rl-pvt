@@ -464,8 +464,8 @@ void solve(const Graph & g0, const Graph & g1,vector<int> & lgrade,vector<int> &
            vector<VtxPair> & current, vector<Bidomain> & domains,
            vector<int> & left, vector<int> & right, unsigned int matching_size_goal)
 {
-    //  if (abort_due_to_timeout)
-    //     return;
+      if (abort_due_to_timeout)
+         return;
 
     //if (arguments.verbose) show(current, domains, left, right);
 
@@ -616,33 +616,32 @@ int main(int argc, char** argv) {
     struct Graph g1 = readGraph(arguments.filename2, format, arguments.directed,
                                 arguments.edge_labelled, arguments.vertex_labelled);
 
-    //  std::thread timeout_thread;
-    //  std::mutex timeout_mutex;
+      std::thread timeout_thread;
+      std::mutex timeout_mutex;
     std::condition_variable timeout_cv;
     abort_due_to_timeout.store(false);
     bool aborted = false;
-#if 0
+
     if (0 != arguments.timeout) {
         timeout_thread = std::thread([&] {
-                auto abort_time = std::chrono::steady_clock::now() + std::chrono::seconds(arguments.timeout);
-                {
-                    /* Sleep until either we've reached the time limit,
-                     * or we've finished all the work. */
-                    std::unique_lock<std::mutex> guard(timeout_mutex);
-                    while (! abort_due_to_timeout.load()) {
-                        if (std::cv_status::timeout == timeout_cv.wait_until(guard, abort_time)) {
-                            /* We've woken up, and it's due to a timeout. */
-                            aborted = true;
-                            break;
-                        }
+            auto abort_time = std::chrono::steady_clock::now() + std::chrono::seconds(arguments.timeout);
+            {
+                /* Sleep until either we've reached the time limit,
+                 * or we've finished all the work. */
+                std::unique_lock<std::mutex> guard(timeout_mutex);
+                while (!abort_due_to_timeout.load()) {
+                    if (std::cv_status::timeout == timeout_cv.wait_until(guard, abort_time)) {
+                        /* We've woken up, and it's due to a timeout. */
+                        aborted = true;
+                        break;
                     }
                 }
-                abort_due_to_timeout.store(true);
-                });
+            }
+            abort_due_to_timeout.store(true);
+        });
     }
-#endif
     //  auto start = std::chrono::steady_clock::now();
-//    clock_t start=clock();
+    clock_t start=clock();
     START = std::chrono::steady_clock::now();
     vector<int> g0_deg = calculate_degrees(g0);
     vector<int> g1_deg = calculate_degrees(g1);
@@ -713,7 +712,7 @@ int main(int argc, char** argv) {
 //    clock_t time_elapsed=clock( )-start;
 //    clock_t time_find=bestfind - start;
     /* Clean up the timeout thread */
-#if 0
+
     if (timeout_thread.joinable()) {
         {
             std::unique_lock<std::mutex> guard(timeout_mutex);
@@ -722,7 +721,7 @@ int main(int argc, char** argv) {
         }
         timeout_thread.join();
     }
-#endif
+
 //    if (!check_sol(g0, g1, solution))
 //        fail("*** Error: Invalid solution\n");
 //
