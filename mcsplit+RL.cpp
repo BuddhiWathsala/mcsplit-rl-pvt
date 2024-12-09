@@ -650,9 +650,9 @@ void bootstrap1(const Graph & g0, const Graph & g1, vector<VtxPair> & incumbent,
                 vector<VtxPair> current, vector<Bidomain> domains,
                 vector<int> left, vector<int> right, unsigned int matching_size_goal)
 {
-    int possible_calls = std::min(g0.n, g1.n);
+    int possible_calls = std::min(domains[0].left_len, domains[0].right_len);
     possible_calls = std::min(possible_calls, max_random_calls) / n_episodes;
-    bool init_branch = true;
+    bool init_branch;
     vector<double> primal_dual_gaps;
     vector<int> left_init = left;
     for (int e=0; e < n_episodes; ++e) {
@@ -661,7 +661,7 @@ void bootstrap1(const Graph & g0, const Graph & g1, vector<VtxPair> & incumbent,
             std::srand(std::time(nullptr));
             vector<Bidomain> domains_copy = domains;
             int bd_idx = 0;
-            int v = left_init[e*possible_calls+i];
+            int v = left_init[domains[0].l + e*possible_calls + i];
             init_branch = true;
             while (bd_idx != -1) {
                 unsigned int bound = current.size() + calc_bound(domains_copy);
@@ -706,9 +706,9 @@ void bootstrap2(const Graph & g0, const Graph & g1, vector<VtxPair> & incumbent,
                 vector<VtxPair> current, vector<Bidomain> domains,
                 vector<int> left, vector<int> right, unsigned int matching_size_goal)
 {
-    int possible_calls = std::min(g0.n, g1.n);
+    int possible_calls = std::min(domains[0].left_len, domains[0].right_len);
     possible_calls = std::min(possible_calls, max_random_calls) / n_episodes;
-    int v_init = left[0];
+    int v_init = left[domains[0].l];
     vector<double> primal_dual_gaps;
     for (int e=0; e < n_episodes; ++e) {
         primal_dual_gaps.clear();
