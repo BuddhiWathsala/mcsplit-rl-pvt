@@ -192,6 +192,10 @@ unsigned long long cut_branches = 0;
 unsigned long long best_count = 0;
 unsigned long long calls_for_optimal = 0;
 std::chrono::duration<double> duration;
+std::chrono::duration<double> duration_for_simulations;
+size_t b1_incumbent_size = 0;
+size_t b2_incumbent_size = 0;
+unsigned long long b1_nodes = 0, b2_nodes = 0;
 int dl=0;
 /*******************************************************************************
                                  MCS functions
@@ -816,8 +820,14 @@ vector<VtxPair> mcs(const Graph & g0, const Graph & g1,vector<int> & lgrade,vect
 
     } else {
         vector<VtxPair> current;
+        auto sim_start = std::chrono::steady_clock::now();
         bootstrap1(g0, g1, incumbent, current, domains, left, right, 1);
+        b1_incumbent_size = incumbent.size();
+        b1_nodes = nodes;
         bootstrap2(g0, g1, incumbent, current, domains, left, right, 1);
+        b2_incumbent_size = incumbent.size();
+        b2_nodes = nodes;
+        duration_for_simulations = std::chrono::steady_clock::now() - sim_start;
         solve(g0, g1,lgrade,rgrade, incumbent, current, domains, left, right, 1);
     }
 
@@ -979,5 +989,7 @@ int main(int argc, char** argv) {
 //        cout << "TIMEOUT" << endl;
     cout << solution.size() << ", " << check_sol(g0, g1, solution) << ", " << duration.count() << ", "
          << time_elapsed.count() << ", " << nodes << ", " << calls_for_optimal << ", " << cut_branches << ", " <<
+         b1_incumbent_size << ", " << b2_incumbent_size << ", " << duration_for_simulations.count() << ", " <<
+         b1_nodes << ", " << b2_nodes << ", " <<
          aborted << endl;
 }
