@@ -649,7 +649,7 @@ std::pair<double, double> calculateMeanAndStdDev(const std::vector<double>& data
 
 const int max_random_calls = 40;
 const int n_episodes = 4;
-const double stdev_threshold = 1.0;
+const double stdev_threshold = 0.2;
 void bootstrap1(const Graph & g0, const Graph & g1, vector<VtxPair> & incumbent,
                 vector<VtxPair> current, vector<Bidomain> domains,
                 vector<int> left, vector<int> right, unsigned int matching_size_goal)
