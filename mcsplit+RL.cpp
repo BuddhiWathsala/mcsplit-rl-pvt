@@ -647,7 +647,7 @@ std::pair<double, double> calculateMeanAndStdDev(const std::vector<double>& data
 }
 
 
-const int max_random_calls = 60;
+const int max_random_calls = 40;
 const int n_episodes = 4;
 const double stdev_threshold = 1.0;
 void bootstrap1(const Graph & g0, const Graph & g1, vector<VtxPair> & incumbent,
