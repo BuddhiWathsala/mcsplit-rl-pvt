@@ -5,7 +5,6 @@
 
 struct Graph {
     int n;
-    double density;
     std::vector<std::vector<unsigned int>> adjmat;//双数组 记载边
     std::vector<unsigned int> label;
     Graph(unsigned int n);
