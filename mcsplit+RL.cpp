@@ -15,6 +15,7 @@
  *This program is free software. you can redistribute it and/or modify it for research.
 */
 #include "graph.h"
+#include "primes.h"
 
 #include <algorithm>
 #include <numeric>
@@ -472,7 +473,7 @@ void remove_bidomain(vector<Bidomain>& domains, int idx) {
     domains.pop_back();
 }
 
-unsigned int findVerticesWithCommonNeighborsAdjmat(const Graph& graph, vector<int> &disable) {
+unsigned int findVerticesWithCommonNeighbors(const Graph& graph, vector<int> &disable) {
     std::unordered_map<size_t, std::vector<unsigned int>> neighborhoodGroups;
     neighborhoodGroups.reserve(graph.n / 4);
     vector<unsigned int> degrees (graph.n, 0);
@@ -513,14 +514,46 @@ unsigned int findVerticesWithCommonNeighborsAdjmat(const Graph& graph, vector<in
     return n_syms;
 }
 
+int findVerticesWithCommonNeighborsRev(const Graph& graph, vector<int> &disable) {
+    std::unordered_map<size_t, std::vector<unsigned int>> neighborhoodGroups;
+    neighborhoodGroups.reserve(graph.n);
+    for (unsigned int v = 0; v < (unsigned int)graph.n; ++v) {
+        size_t positive_hash = 1;
+        size_t negative_hash = 1;
+        vector<int> t;
+        for (unsigned int u = 0; u < (unsigned int)graph.n; ++u) {
+            if (graph.adjmat[v][u]) {
+                positive_hash *= PRIMES[u];
+                negative_hash *= PRIMES[u];;
+            }
+            if (v == u) {
+                positive_hash *= PRIMES[u];;
+            }
+        }
+        neighborhoodGroups[positive_hash].push_back(v);
+        neighborhoodGroups[negative_hash].push_back(v);
+    }
 
-const int G0_DISCARD = -1;
-const int G0_ACTIVE = -2;
+    int n_syms = 0;
+    for (const auto& batch : neighborhoodGroups) {
+        if (batch.second.size() > 1) {
+            size_t n = batch.second.size();
+            int w = batch.second.at(n-1);
+            for (size_t i = 0; i < (n-1); i++) {
+                n_syms++;
+                disable[batch.second[i]] = w;
+            }
+        }
+    }
+
+    return n_syms;
+}
+
 
 void solve_with_sym(const Graph & g0, const Graph & g1,vector<int> & lgrade,vector<int> & rgrade, vector<VtxPair> & incumbent,
            vector<VtxPair> & current, vector<Bidomain> & domains,
            vector<int> & left, vector<int> & right, unsigned int matching_size_goal,
-           vector<int> &matched_g0, vector<MatchingState> &matched_g1,
+           vector<MatchingState> &matched_g0, vector<MatchingState> &matched_g1,
            vector<int> &disable_g0, vector<int> &disable_g1)
 {
     if (abort_due_to_timeout)
@@ -558,7 +591,7 @@ void solve_with_sym(const Graph & g0, const Graph & g1,vector<int> & lgrade,vect
     int v = selectV(left,lgrade, bd.l, bd.left_len);//选取v值时不再是选序号最小的点，而是选grade最大的点，当grade均相同时，则选度最大的。
     remove_vtx_from_left_domain(left, domains[bd_idx], v);//从中去除了度最大的点
 
-    if (g0_has_syms && disable_g0[v] != -1 && matched_g0[disable_g0[v]] == G0_DISCARD) {
+    if (g0_has_syms && disable_g0[v] != -1 && matched_g0[disable_g0[v]] == DISCARD) {
         g0_pruned++;
     } else {
         // Try assigning v to each vertex w in the colour class beginning at bd.r, in turn
@@ -573,15 +606,11 @@ void solve_with_sym(const Graph & g0, const Graph & g1,vector<int> & lgrade,vect
             // swap w to the end of its colour class
             right[bd.r + idx] = right[bd.r + bd.right_len];
             right[bd.r + bd.right_len] = w;
-            if (g1_has_syms && disable_g1[w] != -1 && matched_g1[disable_g1[w]] == ACTIVE) {
+            if (g1_has_syms && disable_g1[w] != -1 && matched_g1[disable_g1[w]] == MATCHED) {
                 g1_pruned++;
                 continue;
             }
-            if (g0_has_syms && disable_g0[v] != -1 && matched_g0[disable_g0[v]] > w) {
-                g0_pruned++;
-            }
             matched_g1[w] = MATCHED;
-            matched_g0[v] = w;
 #ifdef DEBUG
             cout<<"v= "<<v<<" w= "<<w<<endl;
      unsigned int m;
@@ -598,6 +627,7 @@ void solve_with_sym(const Graph & g0, const Graph & g1,vector<int> & lgrade,vect
             dl++;
             solve_with_sym(g0, g1,lgrade,rgrade, incumbent, current, new_domains, left, right, matching_size_goal, matched_g0, matched_g1, disable_g0, disable_g1);
             current.pop_back();
+            matched_g1[w] = ACTIVE;
         }
         bd.right_len++;
     }
@@ -605,9 +635,9 @@ void solve_with_sym(const Graph & g0, const Graph & g1,vector<int> & lgrade,vect
 
     if (bd.left_len == 0)
         remove_bidomain(domains, bd_idx);
-    matched_g0[v] = G0_DISCARD;
+    matched_g0[v] = DISCARD;
     solve_with_sym(g0, g1,lgrade,rgrade, incumbent, current, domains, left, right, matching_size_goal, matched_g0, matched_g1, disable_g0, disable_g1);
-    matched_g0[v] = G0_ACTIVE;
+    matched_g0[v] = ACTIVE;
 }
 
 
@@ -693,8 +723,8 @@ vector<VtxPair> mcs(const Graph & g0, const Graph & g1,vector<int> & lgrade,vect
     auto domains = vector<Bidomain> {};
     vector<int> disable_g0 (g0.n, -1);
     vector<int> disable_g1 (g1.n, -1);
-    g0_n_syms = findVerticesWithCommonNeighborsAdjmat(g0, disable_g0);
-    g1_n_syms = findVerticesWithCommonNeighborsAdjmat(g1, disable_g1);
+    g0_n_syms = findVerticesWithCommonNeighbors(g0, disable_g0);
+    g1_n_syms = findVerticesWithCommonNeighborsRev(g1, disable_g1);
     if (g0_n_syms > 0) {
         g0_has_syms = true;
     }
@@ -749,7 +779,7 @@ vector<VtxPair> mcs(const Graph & g0, const Graph & g1,vector<int> & lgrade,vect
         if (!g0_has_syms && !g1_has_syms) {
             solve_without_sym(g0, g1, lgrade, rgrade, incumbent, current, domains, left, right, 1);
         } else {
-            vector<int> matched_g0 (g0.n, G0_ACTIVE);
+            vector<MatchingState> matched_g0 (g0.n, ACTIVE);
             vector<MatchingState> matched_g1 (g1.n, ACTIVE);
             solve_with_sym(g0, g1, lgrade, rgrade, incumbent, current, domains, left, right, 1, matched_g0, matched_g1, disable_g0, disable_g1);
         }
