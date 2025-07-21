@@ -716,6 +716,7 @@ void solve_without_sym(const Graph & g0, const Graph & g1, vector<int> & lgrade,
     solve_without_sym(g0, g1, lgrade, rgrade, incumbent, current, domains, left, right, matching_size_goal);
 }
 
+double ISOLATED_N_PERCENTAGE = 0.5;
 vector<VtxPair> mcs(const Graph & g0, const Graph & g1,vector<int> & lgrade,vector<int> & rgrade) {
     vector<int> left;  // the buffer of vertex indices for the left partitions
     vector<int> right;  // the buffer of vertex indices for the right partitions
@@ -779,9 +780,13 @@ vector<VtxPair> mcs(const Graph & g0, const Graph & g1,vector<int> & lgrade,vect
         if (!g0_has_syms && !g1_has_syms) {
             solve_without_sym(g0, g1, lgrade, rgrade, incumbent, current, domains, left, right, 1);
         } else {
-            vector<MatchingState> matched_g0 (g0.n, ACTIVE);
-            vector<MatchingState> matched_g1 (g1.n, ACTIVE);
-            solve_with_sym(g0, g1, lgrade, rgrade, incumbent, current, domains, left, right, 1, matched_g0, matched_g1, disable_g0, disable_g1);
+            if (g0.isolated_p > ISOLATED_N_PERCENTAGE || g1.isolated_p > ISOLATED_N_PERCENTAGE || g0_n_syms == 0) {
+                solve_without_sym(g0, g1, lgrade, rgrade, incumbent, current, domains, left, right, 1);
+            } else {
+                vector<MatchingState> matched_g0 (g0.n, ACTIVE);
+                vector<MatchingState> matched_g1 (g1.n, ACTIVE);
+                solve_with_sym(g0, g1, lgrade, rgrade, incumbent, current, domains, left, right, 1, matched_g0, matched_g1, disable_g0, disable_g1);
+            }
         }
     }
 

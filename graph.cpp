@@ -15,21 +15,33 @@ static void fail(std::string msg) {
 
 Graph::Graph(unsigned int n) {
     this->n = n;
+    isolated_p = 0.0;
     label = std::vector<unsigned int>(n, 0u);
     adjmat = {n, std::vector<unsigned int>(n, false)};
 }
 
 Graph induced_subgraph(struct Graph& g, std::vector<int> vv) {
+    size_t isolated_c = 0;
+    size_t edge_count = 0;
     Graph subg(vv.size());
     for (int i=0; i<subg.n; i++) {
+        edge_count = 0;
         for (int j=0; j<subg.n; j++) {
             subg.adjmat[i][j] = g.adjmat[vv[i]][vv[j]];//vv向量标志着顺序
+            if (subg.adjmat[i][j]) {
+                edge_count++;
+            }
+        }
+        if (edge_count == 0) {
+            isolated_c++;
         }
     }
 
 
     for (int i=0; i<subg.n; i++)
         subg.label[i] = g.label[vv[i]];
+
+    subg.isolated_p = (isolated_c*1.0)/subg.n;
     return subg;
 }
 
